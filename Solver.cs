@@ -74,7 +74,7 @@ public static class Solver
 
 					checkedGrids.Add(gridToCheck);
 
-					var res = Helpers.CheckRoute(ref compatibilityArray, ref objectGrids, 1, i, levels);
+					var res = CheckRoute(ref compatibilityArray, ref objectGrids, 1, i, levels);
 
 					if (res == null!)
 					{
@@ -86,6 +86,8 @@ public static class Solver
 
 					res.ToRender().PrintGrid();
 
+					sw.Stop();
+					Console.WriteLine($"Found solution in {sw.Elapsed}");
 					finish.Cancel();
 
 					return;
@@ -95,11 +97,44 @@ public static class Solver
 				Helpers.UpdatePercentageAndPrint(nom, denom, ref lastPercentage, sw.Elapsed);
 			}, finish.Token), 64, finish.Token).ConfigureAwait(false);
 
-			// Console.WriteLine($"Queued {indexes.Length} indexes");
-			//await Task.WhenAll(tasks).ConfigureAwait(false);
-			sw.Stop();
 		}
 	}
 
+	// compatibility map indexes:
+	// level/pentomino, grid/permutation index, other pentomino, bitarray index value: compatibility with other pentomino's grid/permutation at this index
+	public static byte[,] CheckRoute(ref BitArray[,,] cMap, ref byte[][][,] objGrids, int currentLevel, int gridIndex, BitArray[] currentLevels)
+	{
+		//Console.WriteLine($"Starting level {currentLevel} index {gridIndex}");
+
+		var nextLevelsLength = objGrids.Length-currentLevel-1;
+        
+		if (nextLevelsLength == 0)
+			return objGrids[currentLevel][gridIndex].CopyOf();
+        
+		BitArray[] nextLevels;
+
+		nextLevels = new BitArray[nextLevelsLength];
+        
+		for (int level = 0; level < nextLevelsLength; level++)
+		{
+			var newArr = new BitArray(currentLevels[level+1]);
+			newArr.And(cMap[currentLevel,gridIndex,currentLevel+level+1]);
+			if (newArr.AllFalse()) return null!;
+			nextLevels[level]=newArr;
+		}
+
+		for (int i = 0; i < nextLevels[0].Count; i++)
+		{
+			if (!nextLevels[0][i]) continue;
+            
+			var result = CheckRoute(ref cMap, ref objGrids, currentLevel + 1, i, nextLevels);
+			if (result == null!) continue;
+                
+			result.AddObject(objGrids[currentLevel][gridIndex]);
+			return result;
+		}
+
+		return null!;
+	}
 
 }

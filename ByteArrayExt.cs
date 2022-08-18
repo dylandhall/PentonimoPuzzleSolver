@@ -1,3 +1,5 @@
+using System.Text;
+
 public static class ByteArrayExt
 {
     public static byte[,] CopyOf(this byte[,] obj)
@@ -55,6 +57,23 @@ public static class ByteArrayExt
         }
 
         return true;
+    }
+
+    public static void PrintGrid(this string[,] rArr)
+    {
+
+        var stringBuilder = new StringBuilder();
+        for (int j = 0; j < rArr.GetLength(0); j++)
+        {
+            for (int k = 0; k < rArr.GetLength(1); k++)
+            {
+                stringBuilder.Append(rArr[j, k]);
+            }
+
+            stringBuilder.AppendLine();
+        }
+        
+        Console.WriteLine(stringBuilder.ToString());
     }
 
 }
