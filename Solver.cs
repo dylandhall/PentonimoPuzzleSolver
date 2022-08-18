@@ -13,7 +13,7 @@ public static class Solver
 
 		var objectGrids = pentObjs.GetObjectGrids(10, 10);
 		BitArray[,,] compatibilityArray = objectGrids.GenerateCompatibilityArray();
-		
+
 #if DEBUG
 		decimal countAll = 0;
 		foreach (var bitArray in compatibilityArray)
@@ -40,7 +40,7 @@ public static class Solver
 
 				return true;
 			}).ToArray();
-			
+
 			int denom = indexes.Length;
 			int nom = 0;
 
@@ -104,16 +104,12 @@ public static class Solver
 	// level/pentomino, grid/permutation index, other pentomino, bitarray index value: compatibility with other pentomino's grid/permutation at this index
 	public static byte[,] CheckRoute(ref BitArray[,,] cMap, ref byte[][][,] objGrids, int currentLevel, int gridIndex, BitArray[] currentLevels)
 	{
-		//Console.WriteLine($"Starting level {currentLevel} index {gridIndex}");
-
 		var nextLevelsLength = objGrids.Length-currentLevel-1;
         
 		if (nextLevelsLength == 0)
 			return objGrids[currentLevel][gridIndex].CopyOf();
-        
-		BitArray[] nextLevels;
 
-		nextLevels = new BitArray[nextLevelsLength];
+		var nextLevels = new BitArray[nextLevelsLength];
         
 		for (int level = 0; level < nextLevelsLength; level++)
 		{
