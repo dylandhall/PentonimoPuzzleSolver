@@ -2,7 +2,7 @@ using System.Collections;
 
 public static class PentonimoWithTransformsExt
 {
-    public static byte[][][,] GetObjectGrids(this PentonimoWithTransforms[] pentObjs, int xSize, int ySize)
+    public static byte[][][,] GetObjectGrids(this PentonimoWithTransforms[] pentObjs, int xSize, int ySize, byte[,]? gridMask = null)
     {
         var objGrids = new List<byte[,]>[pentObjs.Length];
 
@@ -13,7 +13,8 @@ public static class PentonimoWithTransformsExt
             for (int y = 0; y < ySize; y++)
                 poL.AddRange(pentObjs[i].GetAllAtOffset(x, y, xSize, ySize));
 
-            objGrids[i] = poL;
+            
+            objGrids[i] = gridMask == null ? poL : poL.Where(gridMask.IsCompatible).ToList();
         }
 
         return objGrids.Select(g => g.ToArray()).ToArray();

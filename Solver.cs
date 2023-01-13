@@ -10,8 +10,42 @@ public static class Solver
 	{
 
 		var pentObjs = Pentonimos.GetPentonimos().Select(a => new PentonimoWithTransforms(a)).ToArray();
-
-		var objectGrids = pentObjs.GetObjectGrids(10, 10);
+		var m = SquareValues.Filled;
+		var o = SquareValues.Empty;
+		var objectGrids = pentObjs.GetObjectGrids(15, 10, gridMask:
+			new[,] {
+			{
+				m,m,m,m,m,m,m,m,m,m,m,m,o,m,m
+			},
+			{
+				m,m,m,m,m,m,m,m,m,m,m,m,o,o,m
+			},
+			{
+				m,m,m,m,m,o,o,m,m,o,o,o,o,m,m
+			},
+			{
+				m,o,o,o,o,o,o,o,o,o,o,o,m,m,m
+			},
+			{
+				m,o,o,o,o,o,o,o,o,o,o,o,m,m,m
+			},
+			{
+				m,o,o,o,o,o,o,o,o,o,o,m,m,m,m
+			},
+			{
+				m,o,o,o,o,o,o,o,o,m,m,m,m,m,m
+			},
+			{
+				m,o,o,o,o,o,o,o,m,m,m,m,m,m,m
+			},
+			{
+				m,o,o,m,m,m,o,o,m,m,m,m,m,m,m
+			},
+			{
+				m,m,m,m,m,m,m,m,m,m,m,m,m,m,m
+			}
+			}.Rotate90()
+			);
 		BitArray[,,] compatibilityArray = objectGrids.GenerateCompatibilityArray();
 
 #if DEBUG
@@ -50,49 +84,55 @@ public static class Solver
 			sw.Start();
 			await indexes.ParallelForEachAsync(index => Task.Run(() =>
 			{
-				var levels = new BitArray[objectGrids.Length - 1];
-
-				for (int i = 0; i < (objectGrids.Length - 1); i++) levels[i] = compatibilityArray[0, index, i + 1];
-				var checkedGrids = new List<byte[,]>();
-				for (int i = 0; i < levels[0].Count; i++)
+				try
 				{
-					if (finish.IsCancellationRequested) return;
-					if (!levels[0][i])
+					var levels = new BitArray[objectGrids.Length - 1];
+
+					for (int i = 0; i < (objectGrids.Length - 1); i++) levels[i] = compatibilityArray[0, index, i + 1];
+					var checkedGrids = new List<byte[,]>();
+					for (int i = 0; i < levels[0].Count; i++)
 					{
-						Console.WriteLine($"Skipped {index}-{i}");
-						continue;
+						if (finish.IsCancellationRequested) return;
+						if (!levels[0][i])
+						{
+							Console.WriteLine($"Skipped {index}-{i}");
+							continue;
+						}
+
+						var gridToCheck = objectGrids[0][index].CopyOf();
+						gridToCheck.AddObject(objectGrids[1][i]);
+
+						if (checkedGrids.Any(g => arrayTransformEquality.Equals(gridToCheck, g)))
+						{
+							Console.WriteLine($"Already checked transform of {index}-{i}");
+							continue;
+						}
+
+						checkedGrids.Add(gridToCheck);
+
+						var res = CheckRoute(ref compatibilityArray, ref objectGrids, 1, i, levels);
+
+						if (res == null!)
+						{
+							Console.WriteLine($"Finished {index}-{i}");
+							continue;
+						}
+
+						res.AddObject(objectGrids[0][index]);
+
+						res.ToRender().PrintGrid();
+
+						sw.Stop();
+						Console.WriteLine($"Found solution in {sw.Elapsed}");
+						finish.Cancel();
+
+						return;
 					}
-
-					var gridToCheck = objectGrids[0][index].CopyOf();
-					gridToCheck.AddObject(objectGrids[1][i]);
-
-					if (checkedGrids.Any(g => arrayTransformEquality.Equals(gridToCheck, g)))
-					{
-						Console.WriteLine($"Already checked transform of {index}-{i}");
-						continue;
-					}
-
-					checkedGrids.Add(gridToCheck);
-
-					var res = CheckRoute(ref compatibilityArray, ref objectGrids, 1, i, levels);
-
-					if (res == null!)
-					{
-						Console.WriteLine($"Finished {index}-{i}");
-						continue;
-					}
-
-					res.AddObject(objectGrids[0][index]);
-
-					res.ToRender().PrintGrid();
-
-					sw.Stop();
-					Console.WriteLine($"Found solution in {sw.Elapsed}");
-					finish.Cancel();
-
-					return;
 				}
-
+				catch (Exception ex)
+				{
+					Console.WriteLine($"{ex.Message}{Environment.NewLine}{ex.StackTrace}");
+				}
 				Interlocked.Increment(ref nom);
 				Helpers.UpdatePercentageAndPrint(nom, denom, ref lastPercentage, sw.Elapsed);
 			}, finish.Token), 64, finish.Token).ConfigureAwait(false);

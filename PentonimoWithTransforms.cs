@@ -1,6 +1,9 @@
+
+
+using System.Numerics;
+
 public class PentonimoWithTransforms
 {
-
     public PentonimoWithTransforms(byte[,] obj)
     {
         var eq = new ArrayEquality();
@@ -32,7 +35,7 @@ public class PentonimoWithTransforms
         _transforms = x.ToArray();
     }
 
-    private static readonly int[][] AdjOffsets = { new [] { -1, 0 }, new [] { 1, 0 }, new [] { 0, -1 }, new [] { 0, 1} };
+    //private static readonly int[][] AdjOffsets = { new [] { -1, 0 }, new [] { 1, 0 }, new [] { 0, -1 }, new [] { 0, 1} };
 	
     public byte[][,] GetAllAtOffset(int offsetX, int offsetY, int gridX, int gridY)
     {
@@ -51,15 +54,15 @@ public class PentonimoWithTransforms
                     if (t[x, y] != SquareValues.Filled) continue;
 
                     grid[offsetX + x, offsetY + y] = SquareValues.Filled;
-                    foreach (var aOffset in AdjOffsets)
-                    {
-                        int aX = offsetX + x + aOffset[0];
-                        int aY = offsetY + y + aOffset[1];
-                        if (aX < 0 || aX >= gridX) continue;
-                        if (aY < 0 || aY >= gridY) continue;
-                        if (grid[aX, aY] != SquareValues.Empty) continue;
-                        grid[aX, aY] = SquareValues.Adjacent;
-                    }
+                    // foreach (var aOffset in AdjOffsets)
+                    // {
+                    //     int aX = offsetX + x + aOffset[0];
+                    //     int aY = offsetY + y + aOffset[1];
+                    //     if (aX < 0 || aX >= gridX) continue;
+                    //     if (aY < 0 || aY >= gridY) continue;
+                    //     if (grid[aX, aY] != SquareValues.Empty) continue;
+                    //     grid[aX, aY] = SquareValues.Adjacent;
+                    // }
                 }
             }
             res.Add(grid);

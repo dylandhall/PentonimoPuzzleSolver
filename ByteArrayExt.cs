@@ -32,7 +32,7 @@ public static class ByteArrayExt
 
     public static bool IsCompatible(this byte[,] grid, byte[,] update)
     {
-        if (grid.GetLength(0) != update.GetLength(0) || grid.GetLength(0) != update.GetLength(0)) return false;
+        if (grid.GetLength(0) != update.GetLength(0) || grid.GetLength(1) != update.GetLength(1)) return false;
 
         for (int x = 0; x < grid.GetLength(0); x++)
         for (int y = 0; y < grid.GetLength(1); y++)
