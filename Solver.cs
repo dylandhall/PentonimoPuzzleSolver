@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Diagnostics;
+using System.Numerics;
 using Dasync.Collections;
 
 namespace PentonimoSolver;
@@ -11,16 +12,21 @@ public static class Solver
 
 		var pentObjs = Pentonimos.GetPentonimos().Select(a => new PentonimoWithTransforms(a)).ToArray();
 
+		var colVals = new BigInteger[600];
+
+		for (int i = 0; i < 600; i++)
+			colVals[i] = BigInteger.Pow(2, i);
+
 		var objectGrids = pentObjs.GetObjectGrids(10, 10);
-		BitArray[,,] compatibilityArray = objectGrids.GenerateCompatibilityArray();
+		BigInteger[,,] compatibilityArray = objectGrids.GenerateCompatibilityArray(ref colVals);
 
 #if DEBUG
-		decimal countAll = 0;
-		foreach (var bitArray in compatibilityArray)
-		{
-			countAll += bitArray?.Length??0;
-		}
-		Console.WriteLine($"Finished generating compatibility data, {countAll} comparisons stored from {objectGrids.Sum(p => p.Length)} grids");
+		// decimal countAll = 0;
+		// foreach (var bitArray in compatibilityArray)
+		// {
+		// 	countAll += bitArray?.Length??0;
+		// }
+		// Console.WriteLine($"Finished generating compatibility data, {countAll} comparisons stored from {objectGrids.Sum(p => p.Length)} grids");
 #else
 		Console.WriteLine($"Finished generating compatibility data");
 #endif
@@ -50,14 +56,14 @@ public static class Solver
 			sw.Start();
 			await indexes.ParallelForEachAsync(index => Task.Run(() =>
 			{
-				var levels = new BitArray[objectGrids.Length - 1];
+				var levels = new BigInteger[objectGrids.Length - 1];
 
 				for (int i = 0; i < (objectGrids.Length - 1); i++) levels[i] = compatibilityArray[0, index, i + 1];
 				var checkedGrids = new List<byte[,]>();
-				for (int i = 0; i < levels[0].Count; i++)
+				for (int i = 0; i < levels[0].GetBitLength(); i++)
 				{
 					if (finish.IsCancellationRequested) return;
-					if (!levels[0][i])
+					if ((levels[0] & BigInteger.Pow(2,i)) == 0)
 					{
 						Console.WriteLine($"Skipped {index}-{i}");
 						continue;
@@ -74,7 +80,7 @@ public static class Solver
 
 					checkedGrids.Add(gridToCheck);
 
-					var res = CheckRoute(ref compatibilityArray, ref objectGrids, 1, i, levels);
+					var res = CheckRoute(ref compatibilityArray, ref objectGrids, ref colVals, 1, i, levels);
 
 					if (res == null!)
 					{
@@ -102,28 +108,29 @@ public static class Solver
 
 	// compatibility map indexes:
 	// level/pentomino, grid/permutation index, other pentomino, bitarray index value: compatibility with other pentomino's grid/permutation at this index
-	public static byte[,] CheckRoute(ref BitArray[,,] cMap, ref byte[][][,] objGrids, int currentLevel, int gridIndex, BitArray[] currentLevels)
+	public static byte[,] CheckRoute(ref BigInteger[,,] cMap, ref byte[][][,] objGrids, ref BigInteger[] colVals, int currentLevel, int gridIndex, BigInteger[] currentLevels)
 	{
 		var nextLevelsLength = objGrids.Length-currentLevel-1;
         
 		if (nextLevelsLength == 0)
 			return objGrids[currentLevel][gridIndex].CopyOf();
 
-		var nextLevels = new BitArray[nextLevelsLength];
+		var nextLevels = new BigInteger[nextLevelsLength]; //new BitArray[nextLevelsLength];
         
 		for (int level = 0; level < nextLevelsLength; level++)
 		{
-			var newArr = new BitArray(currentLevels[level+1]);
-			newArr.And(cMap[currentLevel,gridIndex,currentLevel+level+1]);
-			if (newArr.AllFalse()) return null!;
-			nextLevels[level]=newArr;
+			// var newArr = new BitArray(currentLevels[level+1]);
+			// newArr.And(cMap[currentLevel,gridIndex,currentLevel+level+1]);
+			// if (newArr.AllFalse()) return null!;
+			nextLevels[level] =
+				currentLevels[level + 1] & cMap[currentLevel, gridIndex, currentLevel + level + 1]; //newArr;
 		}
 
-		for (int i = 0; i < nextLevels[0].Count; i++)
+		for (int i = 0; colVals[i] < nextLevels[0]; i++)
 		{
-			if (!nextLevels[0][i]) continue;
+			if ((nextLevels[0] & colVals[i]) == 0) continue;
             
-			var result = CheckRoute(ref cMap, ref objGrids, currentLevel + 1, i, nextLevels);
+			var result = CheckRoute(ref cMap, ref objGrids, ref colVals, currentLevel + 1, i, nextLevels);
 			if (result == null!) continue;
                 
 			result.AddObject(objGrids[currentLevel][gridIndex]);

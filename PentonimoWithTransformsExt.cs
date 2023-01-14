@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Numerics;
 
 public static class PentonimoWithTransformsExt
 {
@@ -19,12 +20,12 @@ public static class PentonimoWithTransformsExt
         return objGrids.Select(g => g.ToArray()).ToArray();
     }
 
-    public static BitArray[,,] GenerateCompatibilityArray(this byte[][][,] objGrids)
+    public static BigInteger[,,] GenerateCompatibilityArray(this byte[][][,] objGrids, ref BigInteger[] colVals)
     {
         var numObjs = objGrids.Count();
         int maxPerms = objGrids.Max(a => a.Length);
 
-        var vl = new BitArray[numObjs, maxPerms, numObjs];
+        var vl = new BigInteger[numObjs, maxPerms, numObjs];
 
         for (int pentObject = 0; pentObject < numObjs; pentObject++)
         {
@@ -32,13 +33,14 @@ public static class PentonimoWithTransformsExt
             {
                 for (int otherObject = pentObject + 1; otherObject < numObjs; otherObject++)
                 {
-                    bool[] tmp = new bool[objGrids[otherObject].Length];
-
+                    //bool[] tmp = new bool[objGrids[otherObject].Length];
+                    BigInteger tmp = new BigInteger();
                     for (int otherGrid = 0; otherGrid < objGrids[otherObject].Length; otherGrid++)
-                        tmp[otherGrid] = objGrids[pentObject][grid].IsCompatible(objGrids[otherObject][otherGrid]);
+                        if (objGrids[pentObject][grid].IsCompatible(objGrids[otherObject][otherGrid]))
+                            tmp += colVals[otherObject];
+                        //tmp[otherGrid] = objGrids[pentObject][grid].IsCompatible(objGrids[otherObject][otherGrid]);
 
-
-                    vl[pentObject, grid, otherObject] = new BitArray(tmp);
+                    vl[pentObject, grid, otherObject] = tmp;
                 }
             }
         }
