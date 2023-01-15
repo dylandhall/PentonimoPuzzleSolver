@@ -1,3 +1,3 @@
 ﻿using PentonimoSolver;
-Solver.TestSolve();
-//await Solver.Solve();
+//Solver.TestSolve();
+await Solver.Solve();

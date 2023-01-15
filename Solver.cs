@@ -36,11 +36,11 @@ public static class Solver
 
 			for (int i = 0; i < (objectGrids.Length - 1); i++) levels[i] = compatibilityArray[0, index, i + 1];
 			var checkedGrids = new List<byte[,]>();
-			for (int i = 0; bitValues[i==0?0:i-1] < levels[0]; i++)
+			for (int i = 0; bitValues[i==0?0:i-1] <= levels[0]; i++)
 			{
 				if ((levels[0] & bitValues[i]) == 0)
 				{
-					Console.WriteLine($"Skipped {index}-{i}");
+					Console.WriteLine($"Skipped {index}-{i} ({levels[0]}/{bitValues[i]})");
 					continue;
 				}
 
@@ -49,7 +49,7 @@ public static class Solver
 
 				if (checkedGrids.Any(g => arrayTransformEquality.Equals(gridToCheck, g)))
 				{
-					Console.WriteLine($"Already checked transform of {index}-{i}");
+					Console.WriteLine($"Already checked transform of {index}-{i} ({bitValues[i]})");
 					continue;
 				}
 
@@ -164,7 +164,7 @@ public static class Solver
 
 				Interlocked.Increment(ref nom);
 				Helpers.UpdatePercentageAndPrint(nom, denom, ref lastPercentage, sw.Elapsed);
-			}, finish.Token), 1, finish.Token).ConfigureAwait(false);
+			}, finish.Token), 64, finish.Token).ConfigureAwait(false);
 
 		}
 	}
@@ -201,20 +201,13 @@ public static class Solver
 
 		for (int i = 0; colVals[i==0?0:i-1] <= nextLevels[0]; i++)
 		{
-			if ((nextLevels[0] & colVals[i]) == 0)
-			{
-				Console.WriteLine($"{nextLevels[0]}, {colVals[i]}, {i} FALSE");				
-				continue;
-			}
-			Console.WriteLine($"{nextLevels[0]}, {colVals[i]}, {i} TRUE");
+			if ((nextLevels[0] & colVals[i]) == 0) continue;
             
 			var result = CheckRoute(ref cMap, ref objGrids, ref colVals, currentLevel + 1, i, nextLevels);
 			if (result == null!) continue;
-			Console.WriteLine($"{currentLevel} - {gridIndex}");
-			objGrids[currentLevel][gridIndex].ToRender().PrintGrid();
-			result.ToRender().PrintGrid();
+
 			result.AddObject(objGrids[currentLevel][gridIndex]);
-			result.ToRender().PrintGrid();
+
 			return result;
 		}
 

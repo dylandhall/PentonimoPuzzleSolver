@@ -20,7 +20,7 @@ public static class PentonimoWithTransformsExt
         return objGrids.Select(g => g.ToArray()).ToArray();
     }
 
-    public static BigInteger[,,] GenerateCompatibilityArray(this byte[][][,] objGrids, ref BigInteger[] colVals)
+    public static BigInteger[,,] GenerateCompatibilityArray(this byte[][][,] objGrids, ref BigInteger[] bitValues)
     {
         var numObjs = objGrids.Count();
         int maxPerms = objGrids.Max(a => a.Length);
@@ -37,7 +37,7 @@ public static class PentonimoWithTransformsExt
                     BigInteger tmp = new BigInteger();
                     for (int otherGrid = 0; otherGrid < objGrids[otherObject].Length; otherGrid++)
                         if (objGrids[pentObject][grid].IsCompatible(objGrids[otherObject][otherGrid]))
-                            tmp += colVals[otherObject];
+                            tmp += bitValues[otherGrid];
                         //tmp[otherGrid] = objGrids[pentObject][grid].IsCompatible(objGrids[otherObject][otherGrid]);
 
                     vl[pentObject, grid, otherObject] = tmp;
