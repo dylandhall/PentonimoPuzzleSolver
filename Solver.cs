@@ -7,18 +7,81 @@ namespace PentonimoSolver;
 
 public static class Solver
 {
+
+	public static void TestSolve()
+	{
+		var pentObjs = Pentonimos.GetPentonimos().Take(3).Select(a => new PentonimoWithTransforms(a)).ToArray();
+		var bitValues = GetIntBitValues();
+		
+		var objectGrids = pentObjs.GetObjectGrids(10, 10);
+		BigInteger[,,] compatibilityArray = objectGrids.GenerateCompatibilityArray(ref bitValues);
+
+		var indexes = objectGrids[0].Select((_, i) => i).ToArray();
+
+		var arrayTransformEquality = new ArrayTransformEquality(new ArrayEquality());
+
+		indexes = indexes.Where(i =>
+		{
+			var thisGrid = objectGrids[0][i];
+			for (int j = 0; j < i; j++)
+			{
+				if (arrayTransformEquality.Equals(objectGrids[0][j], thisGrid)) return false;
+			}
+			return true;
+		}).ToArray();
+
+		foreach (var index in indexes) 
+		{
+			var levels = new BigInteger[objectGrids.Length - 1];
+
+			for (int i = 0; i < (objectGrids.Length - 1); i++) levels[i] = compatibilityArray[0, index, i + 1];
+			var checkedGrids = new List<byte[,]>();
+			for (int i = 0; bitValues[i==0?0:i-1] < levels[0]; i++)
+			{
+				if ((levels[0] & bitValues[i]) == 0)
+				{
+					Console.WriteLine($"Skipped {index}-{i}");
+					continue;
+				}
+
+				var gridToCheck = objectGrids[0][index].CopyOf();
+				gridToCheck.AddObject(objectGrids[1][i]);
+
+				if (checkedGrids.Any(g => arrayTransformEquality.Equals(gridToCheck, g)))
+				{
+					Console.WriteLine($"Already checked transform of {index}-{i}");
+					continue;
+				}
+
+				checkedGrids.Add(gridToCheck);
+
+				var res = CheckRoute(ref compatibilityArray, ref objectGrids, ref bitValues, 1, i, levels);
+
+				if (res == null!)
+				{
+					Console.WriteLine($"Finished {index}-{i}");
+					continue;
+				}
+
+				res.AddObject(objectGrids[0][index]);
+
+				res.ToRender().PrintGrid();
+
+				Console.WriteLine($"Found solution");
+
+				return;
+			}
+		}
+	}
+	
 	public static async Task Solve()
 	{
 
 		var pentObjs = Pentonimos.GetPentonimos().Select(a => new PentonimoWithTransforms(a)).ToArray();
-
-		var colVals = new BigInteger[600];
-
-		for (int i = 0; i < 600; i++)
-			colVals[i] = BigInteger.Pow(2, i);
+		var bitValues = GetIntBitValues();
 
 		var objectGrids = pentObjs.GetObjectGrids(10, 10);
-		BigInteger[,,] compatibilityArray = objectGrids.GenerateCompatibilityArray(ref colVals);
+		BigInteger[,,] compatibilityArray = objectGrids.GenerateCompatibilityArray(ref bitValues);
 
 #if DEBUG
 		// decimal countAll = 0;
@@ -80,7 +143,7 @@ public static class Solver
 
 					checkedGrids.Add(gridToCheck);
 
-					var res = CheckRoute(ref compatibilityArray, ref objectGrids, ref colVals, 1, i, levels);
+					var res = CheckRoute(ref compatibilityArray, ref objectGrids, ref bitValues, 1, i, levels);
 
 					if (res == null!)
 					{
@@ -101,9 +164,18 @@ public static class Solver
 
 				Interlocked.Increment(ref nom);
 				Helpers.UpdatePercentageAndPrint(nom, denom, ref lastPercentage, sw.Elapsed);
-			}, finish.Token), 64, finish.Token).ConfigureAwait(false);
+			}, finish.Token), 1, finish.Token).ConfigureAwait(false);
 
 		}
+	}
+
+	private static BigInteger[] GetIntBitValues()
+	{
+		var colVals = new BigInteger[600];
+
+		for (int i = 0; i < 600; i++)
+			colVals[i] = BigInteger.Pow(2, i);
+		return colVals;
 	}
 
 	// compatibility map indexes:
@@ -123,17 +195,26 @@ public static class Solver
 			// newArr.And(cMap[currentLevel,gridIndex,currentLevel+level+1]);
 			// if (newArr.AllFalse()) return null!;
 			nextLevels[level] =
-				currentLevels[level + 1] & cMap[currentLevel, gridIndex, currentLevel + level + 1]; //newArr;
+				currentLevels[level + 1] & cMap[currentLevel, gridIndex, currentLevel + level + 1]; //
+			if (nextLevels[level] == 0) return null!;
 		}
 
-		for (int i = 0; colVals[i] < nextLevels[0]; i++)
+		for (int i = 0; colVals[i==0?0:i-1] <= nextLevels[0]; i++)
 		{
-			if ((nextLevels[0] & colVals[i]) == 0) continue;
+			if ((nextLevels[0] & colVals[i]) == 0)
+			{
+				Console.WriteLine($"{nextLevels[0]}, {colVals[i]}, {i} FALSE");				
+				continue;
+			}
+			Console.WriteLine($"{nextLevels[0]}, {colVals[i]}, {i} TRUE");
             
 			var result = CheckRoute(ref cMap, ref objGrids, ref colVals, currentLevel + 1, i, nextLevels);
 			if (result == null!) continue;
-                
+			Console.WriteLine($"{currentLevel} - {gridIndex}");
+			objGrids[currentLevel][gridIndex].ToRender().PrintGrid();
+			result.ToRender().PrintGrid();
 			result.AddObject(objGrids[currentLevel][gridIndex]);
+			result.ToRender().PrintGrid();
 			return result;
 		}
 

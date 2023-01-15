@@ -52,7 +52,7 @@ public static class ByteArrayExt
         for (int y = 0; y < grid.GetLength(1); y++)
         {
             byte newval = (byte)(grid[x, y] + update[x, y]);
-            if (newval > SquareValues.Filled) return false;
+            if (newval > SquareValues.Filled) throw new Exception("Too much");//return false;
             grid[x, y] = newval;
         }
 
